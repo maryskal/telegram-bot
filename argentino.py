@@ -18,39 +18,14 @@ updater = Updater(bot.token, use_context=True)
 
 
 #Configurar Loggin
-logging.basicConfig(
-    level = logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)")
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                    level=logging.INFO)
 
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
 
 #Solicitar datos
 TOKEN = os.getenv("TOKEN")
 mode = os.getenv("MODE")
-
-
-#Segun el modo
-if mode == "local":
-    def run(updater):
-        updater.start_polling() #Activa el bot
-        print("Bot activo")
-        updater.idle() #Finaliza el bot cuando damos Ctrl + C
-
-elif mode == "heroku":
-    def run(updater):
-        #Definimos el puerto y la aplicacion
-        PORT = int(os.environ.get("PORT", "8443"))
-        HEROKU_APP_NAME = os.environ.get("HEROKU_APP_NAME")
-
-        #Encendemos el servidor
-        server.run(host="0, 0, 0, 0", port=PORT)
-
-        #Creamos el webhook
-        updater.bot.remove_webhook()
-        updater.bot.set_webhook(url="https://{HEROKU_APP_NAME}.herokuapp.com/{TOKEN}")
-else:
-    logger.info("No se especificó el mode")
-    sys.exit()
-
 
 
 #FUNCIONES
@@ -103,7 +78,16 @@ def main():
     #Conversacion
     llamada(MessageHandler(Filters.text, respuestas))
 
-    run(updater)
+    # Definimos el puerto y la aplicacion
+    PORT = int(os.environ.get('PORT', '8443'))
+    HEROKU_APP_NAME = os.environ.get("HEROKU_APP_NAME")
+
+    # Encendemos el servidor
+    updater.start_webhook(listen="0.0.0.0",
+                          port=PORT,
+                          url_path=TOKEN)
+    # updater.bot.set_webhook(url=settings.WEBHOOK_URL)
+    updater.bot.set_webhook(url="https://{HEROKU_APP_NAME}.herokuapp.com/{TOKEN}")
 
 
 if __name__ == '__main__':
