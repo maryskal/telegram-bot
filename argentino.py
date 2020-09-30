@@ -1,7 +1,59 @@
 import logging
+import sys
+from crypt import methods
+from http import server
+
+import telegram
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
+import os
+import telebot
+from flask import Flask, request
+
+server = Flask(__name__)
+
+#Nuestro Bot
+TOKEN = "1316967775:AAGKQ8zgp5mYNJ9cy5aAKhBj9cw5cI-yxWI"
+bot = telegram.Bot(token = TOKEN)
+updater = Updater(bot.token, use_context=True)
 
 
+#Configurar Loggin
+logging.basicConfig(
+    level = logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)")
+
+logger = logging.getLogger()
+
+#Solicitar datos
+TOKEN = os.getenv("TOKEN")
+mode = os.getenv("MODE")
+
+
+#Segun el modo
+if mode == "local":
+    def run(updater):
+        updater.start_polling() #Activa el bot
+        print("Bot activo")
+        updater.idle() #Finaliza el bot cuando damos Ctrl + C
+
+elif mode == "heroku":
+    def run(updater):
+        #Definimos el puerto y la aplicacion
+        PORT = int(os.environ.get("PORT", "5000"))
+        HEROKU_APP_NAME = os.environ.get("HEROKU_APP_NAME")
+
+        #Encendemos el servidor
+        server.run(host="0, 0, 0, 0", port=PORT)
+
+        #Creamos el webhook
+        updater.bot.remove_webhook()
+        updater.bot.set_webhook(url="https://{HEROKU_APP_NAME}.herokuapp.com/{TOKEN}")
+else:
+    logger.info("No se especificó el mode")
+    sys.exit()
+
+
+
+#FUNCIONES
 def start (update, context):
     #print(update.message)
     name = update.message.from_user.first_name
@@ -35,8 +87,9 @@ def respuestas (update, context):
 
 
 
+#MAIN
 def main():
-    updater = Updater("1316967775:AAGKQ8zgp5mYNJ9cy5aAKhBj9cw5cI-yxWI", use_context=True)
+
 
     #Para llamar a todas las acciones utilizo esto
     llamada = updater.dispatcher.add_handler
@@ -50,11 +103,7 @@ def main():
     #Conversacion
     llamada(MessageHandler(Filters.text, respuestas))
 
-    #Empieza el bot
-    updater.start_polling()
-
-    #Se queda esperando
-    updater.idle()
+    run(updater)
 
 
 if __name__ == '__main__':
